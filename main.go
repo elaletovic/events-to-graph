@@ -53,12 +53,16 @@ func main() {
 
 	//handlers for processors (save to SQL and graph DBs)
 	processor := eventProcessor{}
+	//sqlPubSub := gochannel.NewGoChannel(gochannel.Config{}, logger)
+	sqlDBPublisher := createSQLPublisher()
 
 	//handle initial events
-	router.AddNoPublisherHandler(
+	router.AddHandler(
 		"save_to_sql_initial_events_handler",
 		initialEventsTopic,
 		pubSub,
+		sqlEventsTopic,
+		sqlDBPublisher,
 		processor.SaveToSQLDB,
 	)
 	router.AddNoPublisherHandler(
@@ -69,10 +73,12 @@ func main() {
 	)
 
 	//handle purchase events
-	router.AddNoPublisherHandler(
+	router.AddHandler(
 		"save_to_sql_purchase_events_handler",
 		checkoutTopic,
 		pubSub,
+		sqlEventsTopic,
+		sqlDBPublisher,
 		processor.SaveToSQLDB,
 	)
 	router.AddNoPublisherHandler(
@@ -83,10 +89,12 @@ func main() {
 	)
 
 	//handle delivery events
-	router.AddNoPublisherHandler(
+	router.AddHandler(
 		"save_to_sql_delivery_events_handler",
 		deliveryTopic,
 		pubSub,
+		sqlEventsTopic,
+		sqlDBPublisher,
 		processor.SaveToSQLDB,
 	)
 	router.AddNoPublisherHandler(

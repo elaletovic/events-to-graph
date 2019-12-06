@@ -1,0 +1,12 @@
+version: '3'
+services:
+  mysql:
+    image: mysql:8.0
+    logging:
+      driver: none
+    restart: unless-stopped
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_DATABASE: eventstore
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
