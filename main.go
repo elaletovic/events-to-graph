@@ -3,11 +3,14 @@ package main
 import (
 	"context"
 
+	"github.com/elaletovic/events-to-graph/processors"
+
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill/message"
 	"github.com/ThreeDotsLabs/watermill/message/router/middleware"
 	"github.com/ThreeDotsLabs/watermill/message/router/plugin"
 	"github.com/ThreeDotsLabs/watermill/pubsub/gochannel"
+	"github.com/elaletovic/events-to-graph/generators"
 )
 
 var (
@@ -30,44 +33,44 @@ func main() {
 	pubSub := gochannel.NewGoChannel(gochannel.Config{}, logger)
 
 	//init handler struct
-	eventGeneratorHandler := generatorHandler{}
+	eventGeneratorHandler := generators.GeneratorHandler{}
 
 	//configure handlers
 	router.AddHandler(
 		"initial_events_handler",
-		initialEventsTopic,
+		generators.InitialEventsTopic,
 		pubSub,
-		checkoutTopic,
+		generators.CheckoutTopic,
 		pubSub,
 		eventGeneratorHandler.InitialEventsHandler,
 	)
 
 	router.AddHandler(
 		"purchased_events_handler",
-		checkoutTopic,
+		generators.CheckoutTopic,
 		pubSub,
-		deliveryTopic,
+		generators.DeliveryTopic,
 		pubSub,
 		eventGeneratorHandler.PurchasedEventsHandler,
 	)
 
 	//handlers for processors (save to SQL and graph DBs)
-	processor := eventProcessor{}
+	processor := processors.EventProcessor{}
 	//sqlPubSub := gochannel.NewGoChannel(gochannel.Config{}, logger)
-	sqlDBPublisher := createSQLPublisher()
+	sqlDBPublisher := processors.CreateSQLPublisher(logger)
 
 	//handle initial events
 	router.AddHandler(
 		"save_to_sql_initial_events_handler",
-		initialEventsTopic,
+		generators.InitialEventsTopic,
 		pubSub,
-		sqlEventsTopic,
+		processors.SqlEventsTopic,
 		sqlDBPublisher,
 		processor.SaveToSQLDB,
 	)
 	router.AddNoPublisherHandler(
 		"save_to_graph_initial_events_handler",
-		initialEventsTopic,
+		generators.InitialEventsTopic,
 		pubSub,
 		processor.SaveToGraphDB,
 	)
@@ -75,15 +78,15 @@ func main() {
 	//handle purchase events
 	router.AddHandler(
 		"save_to_sql_purchase_events_handler",
-		checkoutTopic,
+		generators.CheckoutTopic,
 		pubSub,
-		sqlEventsTopic,
+		processors.SqlEventsTopic,
 		sqlDBPublisher,
 		processor.SaveToSQLDB,
 	)
 	router.AddNoPublisherHandler(
 		"save_to_graph_purchase_events_handler",
-		checkoutTopic,
+		generators.CheckoutTopic,
 		pubSub,
 		processor.SaveToGraphDB,
 	)
@@ -91,20 +94,20 @@ func main() {
 	//handle delivery events
 	router.AddHandler(
 		"save_to_sql_delivery_events_handler",
-		deliveryTopic,
+		generators.DeliveryTopic,
 		pubSub,
-		sqlEventsTopic,
+		processors.SqlEventsTopic,
 		sqlDBPublisher,
 		processor.SaveToSQLDB,
 	)
 	router.AddNoPublisherHandler(
 		"save_to_graph_delivery_events_handler",
-		deliveryTopic,
+		generators.DeliveryTopic,
 		pubSub,
 		processor.SaveToGraphDB,
 	)
 
-	go generateEvents(pubSub)
+	go generators.GenerateEvents(pubSub)
 
 	//run the router
 	if err := router.Run(context.Background()); err != nil {

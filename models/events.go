@@ -1,4 +1,4 @@
-package main
+package models
 
 const (
 	//Nothing is an event that is not handled

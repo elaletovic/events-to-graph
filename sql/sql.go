@@ -1,4 +1,4 @@
-package main
+package sql
 
 import (
 	stdSql "database/sql"
@@ -8,13 +8,16 @@ import (
 
 	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill-sql/pkg/sql"
+	"github.com/elaletovic/events-to-graph/models"
 
 	"github.com/ThreeDotsLabs/watermill/message"
 )
 
-type mySQLSchemaAdapter struct{}
+// MySQLSchemaAdapter --
+type MySQLSchemaAdapter struct{}
 
-func (m mySQLSchemaAdapter) SchemaInitializingQueries(topic string) []string {
+// SchemaInitializingQueries --
+func (m MySQLSchemaAdapter) SchemaInitializingQueries(topic string) []string {
 	return []string{
 		`CREATE TABLE IF NOT EXISTS ` + topic + ` (
 			id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -26,13 +29,14 @@ func (m mySQLSchemaAdapter) SchemaInitializingQueries(topic string) []string {
 		);`}
 }
 
-func (m mySQLSchemaAdapter) InsertQuery(topic string, msgs message.Messages) (string, []interface{}, error) {
+// InsertQuery --
+func (m MySQLSchemaAdapter) InsertQuery(topic string, msgs message.Messages) (string, []interface{}, error) {
 	query := fmt.Sprintf("INSERT INTO %s (message_id, user_id, type, payload, created_at) VALUES %s",
 		topic,
 		strings.TrimRight(strings.Repeat(`(?,?,?,?,?),`, len(msgs)), ","))
 	args := []interface{}{}
 	for _, msg := range msgs {
-		event := Event{}
+		event := models.Event{}
 		err := json.Unmarshal(msg.Payload, &event)
 		if err != nil {
 			return "", nil, err
@@ -43,7 +47,8 @@ func (m mySQLSchemaAdapter) InsertQuery(topic string, msgs message.Messages) (st
 	return query, args, nil
 }
 
-func (m mySQLSchemaAdapter) SelectQuery(topic string, consumerGroup string, offsetsAdapter sql.OffsetsAdapter) (string, []interface{}) {
+// SelectQuery --
+func (m MySQLSchemaAdapter) SelectQuery(topic string, consumerGroup string, offsetsAdapter sql.OffsetsAdapter) (string, []interface{}) {
 	nextOffsetQuery, nextOffsetArgs := offsetsAdapter.NextOffsetQuery(topic, consumerGroup)
 	selectQuery := `
 		SELECT id, message_id, user_id, type, payload, created_at FROM ` + topic + `
@@ -56,8 +61,9 @@ func (m mySQLSchemaAdapter) SelectQuery(topic string, consumerGroup string, offs
 	return selectQuery, nextOffsetArgs
 }
 
-func (m mySQLSchemaAdapter) UnmarshalMessage(row *stdSql.Row) (offset int, msg *message.Message, err error) {
-	event := Event{}
+// UnmarshalMessage --
+func (m MySQLSchemaAdapter) UnmarshalMessage(row *stdSql.Row) (offset int, msg *message.Message, err error) {
+	event := models.Event{}
 	var id int
 	err = row.Scan(&id, &event.UserID, &event.Type, &event.Payload, &event.CreatedAt)
 	if err != nil {

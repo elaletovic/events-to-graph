@@ -1,4 +1,4 @@
-package main
+package generators
 
 import (
 	"encoding/json"
@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/ThreeDotsLabs/watermill/message/router/middleware"
+	"github.com/elaletovic/events-to-graph/models"
 
 	"github.com/ThreeDotsLabs/watermill"
 
@@ -15,31 +16,35 @@ import (
 )
 
 var (
-	initialEvents            = []string{ItemViewed, UserAddressValidated, UserAddressValidationFailed}
-	itemViewedAfterEvents    = []string{ItemPurchased, ItemDropped, Nothing}
-	itemPurchasedAfterEvents = []string{ItemDelivered, ItemNotDelivered}
-	initialEventsTopic       = "initial_events_topic"
-	checkoutTopic            = "checkout_topic"
-	deliveryTopic            = "delivery_topic"
+	initialEvents            = []string{models.ItemViewed, models.UserAddressValidated, models.UserAddressValidationFailed}
+	itemViewedAfterEvents    = []string{models.ItemPurchased, models.ItemDropped, models.Nothing}
+	itemPurchasedAfterEvents = []string{models.ItemDelivered, models.ItemNotDelivered}
+	// InitialEventsTopic --
+	InitialEventsTopic = "initial_events_topic"
+	// CheckoutTopic --
+	CheckoutTopic = "checkout_topic"
+	// DeliveryTopic --
+	DeliveryTopic = "delivery_topic"
 )
 
-func generateEvents(publisher message.Publisher) {
+// GenerateEvents --
+func GenerateEvents(publisher message.Publisher) {
 	for {
 		eventType := gofakeit.RandString(initialEvents)
 		var eventObj interface{}
 		switch eventType {
-		case ItemViewed:
-			eventObj = ItemViewedPayload{
+		case models.ItemViewed:
+			eventObj = models.ItemViewedPayload{
 				ItemID: gofakeit.Number(1, 10),
 				Price:  gofakeit.Price(0.01, 19.98),
 			}
 
-		case UserAddressValidated:
-			eventObj = UserAddressValidatedPayload{
+		case models.UserAddressValidated:
+			eventObj = models.UserAddressValidatedPayload{
 				Address: fmt.Sprintf("%s, %s, %s", gofakeit.Street(), gofakeit.City(), gofakeit.Country()),
 			}
-		case UserAddressValidationFailed:
-			eventObj = UserAddressValidationFailedPayload{
+		case models.UserAddressValidationFailed:
+			eventObj = models.UserAddressValidationFailedPayload{
 				Address: fmt.Sprintf("%s, %s, %s", gofakeit.Street(), gofakeit.City(), gofakeit.Country()),
 				Reason:  gofakeit.RandString([]string{"fake", "not occupied by user"}),
 			}
@@ -53,7 +58,7 @@ func generateEvents(publisher message.Publisher) {
 			continue
 		}
 
-		obj := Event{
+		obj := models.Event{
 			UserID:    gofakeit.Number(1, 10),
 			CreatedAt: time.Now().Unix(),
 			Type:      eventType,
@@ -67,30 +72,32 @@ func generateEvents(publisher message.Publisher) {
 		msg := message.NewMessage(watermill.NewUUID(), payload)
 		middleware.SetCorrelationID(watermill.NewUUID(), msg)
 		log.Printf("pushing message ID %s with payload %v\n", msg.UUID, string(msg.Payload))
-		publisher.Publish(initialEventsTopic, msg)
+		publisher.Publish(InitialEventsTopic, msg)
 
 		time.Sleep(200 * time.Millisecond)
 	}
 }
 
-type generatorHandler struct {
+// GeneratorHandler --
+type GeneratorHandler struct {
 }
 
-func (gh generatorHandler) InitialEventsHandler(msg *message.Message) ([]*message.Message, error) {
-	event := Event{}
+// InitialEventsHandler --
+func (gh GeneratorHandler) InitialEventsHandler(msg *message.Message) ([]*message.Message, error) {
+	event := models.Event{}
 	err := json.Unmarshal(msg.Payload, &event)
 	if err != nil {
 		log.Printf("failed to unmarshal initial events. Error %v, payload: %v\n", err, string(msg.Payload))
 		return nil, err
 	}
-	newEvent := Event{
+	newEvent := models.Event{
 		UserID:    event.UserID,
 		CreatedAt: time.Now().Unix(),
 		Type:      gofakeit.RandString(itemViewedAfterEvents),
 	}
 	switch event.Type {
-	case ItemViewed:
-		eventPayload := ItemViewedPayload{}
+	case models.ItemViewed:
+		eventPayload := models.ItemViewedPayload{}
 		err = json.Unmarshal(event.Payload, &eventPayload)
 		if err != nil {
 			log.Printf("failed to unmarshal event payload. Error %v, payload: %v\n", err, string(event.Payload))
@@ -99,19 +106,19 @@ func (gh generatorHandler) InitialEventsHandler(msg *message.Message) ([]*messag
 
 		var newEventObj interface{}
 		switch newEvent.Type {
-		case ItemPurchased:
-			newEventObj = ItemPurchasedPayload{
+		case models.ItemPurchased:
+			newEventObj = models.ItemPurchasedPayload{
 				Price:    eventPayload.Price,
 				ItemID:   eventPayload.ItemID,
 				Quantity: gofakeit.Number(1, 5),
 			}
-		case ItemDropped:
-			newEventObj = ItemDroppedPayload{
+		case models.ItemDropped:
+			newEventObj = models.ItemDroppedPayload{
 				Price:    eventPayload.Price,
 				ItemID:   eventPayload.ItemID,
 				Quantity: gofakeit.Number(1, 5),
 			}
-		case Nothing:
+		case models.Nothing:
 			log.Println("returning Nothing")
 			return nil, nil
 		}
@@ -134,21 +141,22 @@ func (gh generatorHandler) InitialEventsHandler(msg *message.Message) ([]*messag
 	return nil, nil
 }
 
-func (gh generatorHandler) PurchasedEventsHandler(msg *message.Message) ([]*message.Message, error) {
-	event := Event{}
+// PurchasedEventsHandler --
+func (gh GeneratorHandler) PurchasedEventsHandler(msg *message.Message) ([]*message.Message, error) {
+	event := models.Event{}
 	err := json.Unmarshal(msg.Payload, &event)
 	if err != nil {
 		log.Printf("PurchasedEventsHandler: failed to unmarshal initial events. Error %v, payload: %v\n", err, string(msg.Payload))
 		return nil, err
 	}
-	newEvent := Event{
+	newEvent := models.Event{
 		UserID:    event.UserID,
 		CreatedAt: time.Now().Unix(),
 		Type:      gofakeit.RandString(itemViewedAfterEvents),
 	}
 	switch event.Type {
-	case ItemPurchased:
-		eventPayload := ItemPurchasedPayload{}
+	case models.ItemPurchased:
+		eventPayload := models.ItemPurchasedPayload{}
 		err = json.Unmarshal(event.Payload, &eventPayload)
 		if err != nil {
 			log.Printf("PurchasedEventsHandler: failed to unmarshal event payload. Error %v, payload: %v\n", err, string(event.Payload))
@@ -157,13 +165,13 @@ func (gh generatorHandler) PurchasedEventsHandler(msg *message.Message) ([]*mess
 
 		var newEventObj interface{}
 		switch newEvent.Type {
-		case ItemDelivered:
-			newEventObj = ItemDeliveredPayload{
+		case models.ItemDelivered:
+			newEventObj = models.ItemDeliveredPayload{
 				Address: fmt.Sprintf("%s, %s, %s", gofakeit.Street(), gofakeit.City(), gofakeit.Country()),
 				ItemID:  eventPayload.ItemID,
 			}
-		case ItemNotDelivered:
-			newEventObj = ItemNotDeliveredPayload{
+		case models.ItemNotDelivered:
+			newEventObj = models.ItemNotDeliveredPayload{
 				ItemID:  eventPayload.ItemID,
 				Address: fmt.Sprintf("%s, %s, %s", gofakeit.Street(), gofakeit.City(), gofakeit.Country()),
 				Reason:  gofakeit.RandString([]string{"fake", "not occupied by user"}),

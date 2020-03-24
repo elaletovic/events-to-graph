@@ -1,27 +1,33 @@
-package main
+package processors
 
 import (
 	stdSql "database/sql"
 	"log"
 
+	"github.com/ThreeDotsLabs/watermill"
 	"github.com/ThreeDotsLabs/watermill-sql/pkg/sql"
 	"github.com/ThreeDotsLabs/watermill/message"
+	schema "github.com/elaletovic/events-to-graph/sql"
 	driver "github.com/go-sql-driver/mysql"
 )
 
 var (
-	sqlEventsTopic = "events"
+	// SqlEventsTopic --
+	SqlEventsTopic = "events"
 )
 
-type eventProcessor struct {
+// EventProcessor --
+type EventProcessor struct {
 }
 
-func (ep eventProcessor) SaveToSQLDB(msg *message.Message) ([]*message.Message, error) {
+// SaveToSQLDB --
+func (ep EventProcessor) SaveToSQLDB(msg *message.Message) ([]*message.Message, error) {
 	log.Printf("saving event to SQL DB. Message UUID: %v; Message Payload: %s", msg.UUID, string(msg.Payload))
 	return message.Messages{msg}, nil
 }
 
-func (ep eventProcessor) SaveToGraphDB(msg *message.Message) error {
+// SaveToGraphDB --
+func (ep EventProcessor) SaveToGraphDB(msg *message.Message) error {
 	log.Printf("saving event to graph DB. Message UUID: %v; Message Payload: %s", msg.UUID, string(msg.Payload))
 	return nil
 }
@@ -46,13 +52,14 @@ func createSQLDB() *stdSql.DB {
 	return db
 }
 
-func createSQLPublisher() message.Publisher {
+// CreateSQLPublisher --
+func CreateSQLPublisher(logger watermill.LoggerAdapter) message.Publisher {
 	db := createSQLDB()
 
 	pub, err := sql.NewPublisher(
 		db,
 		sql.PublisherConfig{
-			SchemaAdapter:        mySQLSchemaAdapter{},
+			SchemaAdapter:        schema.MySQLSchemaAdapter{},
 			AutoInitializeSchema: true,
 		},
 		logger,
