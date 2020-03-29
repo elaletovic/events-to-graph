@@ -17,11 +17,14 @@ const (
 	UserAddressValidated = "user_address_validated"
 	// UserAddressValidationFailed event is triggered when user's address valdiation fails
 	UserAddressValidationFailed = "user_address_validation_failed"
+	// ItemCreated event is triggered when a new item is added to the system
+	ItemCreated = "item_created"
+	// UserRegistered event is triggered when a new user is registered
+	UserRegistered = "user_registered"
 )
 
 // Event --
 type Event struct {
-	UserID    int    `json:"user_id"`
 	CreatedAt int64  `json:"created_at"`
 	Type      string `json:"type"`
 	Payload   []byte `json:"payload"`
@@ -29,44 +32,35 @@ type Event struct {
 
 // ItemViewedPayload --
 type ItemViewedPayload struct {
-	ItemID int     `json:"item_id"`
-	Price  float64 `json:"price"`
+	UserID uint64 `json:"user_id"`
+	ItemID uint64 `json:"item_id"`
 }
 
 // ItemPurchasedPayload --
 type ItemPurchasedPayload struct {
-	ItemID   int     `json:"item_id"`
-	Price    float64 `json:"price"`
-	Quantity int     `json:"quantity"`
+	ItemID   uint64 `json:"item_id"`
+	UserID   uint64 `json:"user_id"`
+	Quantity int    `json:"quantity"`
 }
 
 // ItemDroppedPayload --
 type ItemDroppedPayload struct {
-	ItemID   int     `json:"item_id"`
-	Price    float64 `json:"price"`
-	Quantity int     `json:"quantity"`
+	ItemID   uint64 `json:"item_id"`
+	UserID   uint64 `json:"user_id"`
+	Quantity int    `json:"quantity"`
 }
 
 // ItemDeliveredPayload --
 type ItemDeliveredPayload struct {
-	ItemID  int    `json:"item_id"`
+	ItemID  uint64 `json:"item_id"`
+	UserID  uint64 `json:"user_id"`
 	Address string `json:"address"`
 }
 
 // ItemNotDeliveredPayload --
 type ItemNotDeliveredPayload struct {
-	ItemID  int    `json:"item_id"`
-	Address string `json:"address"`
-	Reason  string `json:"reason"`
-}
-
-// UserAddressValidatedPayload --
-type UserAddressValidatedPayload struct {
-	Address string `json:"address"`
-}
-
-// UserAddressValidationFailedPayload --
-type UserAddressValidationFailedPayload struct {
+	ItemID  uint64 `json:"item_id"`
+	UserID  uint64 `json:"user_id"`
 	Address string `json:"address"`
 	Reason  string `json:"reason"`
 }
