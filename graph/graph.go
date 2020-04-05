@@ -8,14 +8,15 @@ import (
 )
 
 const (
-	dbName                   = "example_db"
-	graphName                = "example_graph"
-	usersCollection          = "users"
-	itemsCollection          = "items"
-	usersItemsEdgeCollection = "users_items"
+	dbName               = "example_db"
+	graphName            = "example_graph"
+	usersCollection      = "users"
+	itemsCollection      = "items"
+	viewedEdgeCollection = "viewed"
 )
 
-type store struct {
+// Store --
+type Store struct {
 	DB           driver.Database
 	Graph        driver.Graph
 	Users        driver.Collection
@@ -27,8 +28,6 @@ type edgeCollection struct {
 	Collection  driver.Collection
 	Constraints driver.VertexConstraints
 }
-
-var s = store{}
 
 // Connect connects to the graph server
 func Connect(address string) driver.Connection {
@@ -56,94 +55,98 @@ func GetClient(conn driver.Connection) driver.Client {
 }
 
 // Init inits the graph database and graph
-func Init(client driver.Client) {
+func Init(client driver.Client) *Store {
+	db, graph := create(client)
+
+	return initStore(db, graph)
+}
+
+func create(client driver.Client) (driver.Database, driver.Graph) {
 	exists, err := client.DatabaseExists(nil, dbName)
 	if err != nil {
-		log.Fatalf("failed to check for a database %s: %v", dbName, err)
+		log.Fatalf("failed to check database %s: %v", dbName, err)
 	}
 	if exists {
-		get(client)
-	} else {
-		create(client)
+		r, err := client.Database(nil, dbName)
+		if err != nil {
+			log.Fatalf("failed to get database %s: %v", dbName, err)
+		}
+		r.Remove(nil)
 	}
-	initCollections()
+
+	db := createDB(client)
+	graph := createGraph(db)
+
+	return db, graph
 }
 
-func get(client driver.Client) {
-	getDB(client)
-	graphExists, err := s.DB.GraphExists(nil, graphName)
-	if err != nil {
-		log.Fatalf("failed to check if graph %s exists: %v", graphName, err)
-	}
-	if graphExists {
-		getGraph()
-	} else {
-		createGraph()
-	}
-}
-
-func create(client driver.Client) {
-	createDB(client)
-	createGraph()
-}
-
-func getDB(client driver.Client) {
+func getDB(client driver.Client) driver.Database {
 	db, err := client.Database(nil, dbName)
 	if err != nil {
 		log.Fatalf("failed to get a database %s: %v", dbName, err)
 	}
-	s.DB = db
+	return db
 }
 
-func createDB(client driver.Client) {
+func createDB(client driver.Client) driver.Database {
 	db, err := client.CreateDatabase(nil, dbName, nil)
 	if err != nil {
 		log.Fatalf("failed to create a database %s: %v", dbName, err)
 	}
-	s.DB = db
+	return db
 }
 
-func getGraph() {
-	graph, err := s.DB.Graph(nil, graphName)
+func removeGraph(db *driver.Database) {
+	graph, err := (*db).Graph(nil, graphName)
 	if err != nil {
 		log.Fatalf("failed to get a graph %s: %v", graphName, err)
 	}
-	s.Graph = graph
+	err = graph.Remove(nil)
+	if err != nil {
+		log.Fatalf("failed to remove graph %s: %v", graphName, err)
+	}
+	log.Println("graph removed")
 }
 
-func createGraph() {
+func createGraph(db driver.Database) driver.Graph {
 	var definition driver.EdgeDefinition
-	definition.Collection = usersItemsEdgeCollection
+	definition.Collection = viewedEdgeCollection
 	definition.From = []string{usersCollection}
 	definition.To = []string{itemsCollection}
 
 	var options driver.CreateGraphOptions
 	options.EdgeDefinitions = []driver.EdgeDefinition{definition}
-	graph, err := s.DB.CreateGraph(nil, graphName, &options)
+	graph, err := db.CreateGraph(nil, graphName, &options)
 	if err != nil {
 		log.Fatalf("failed to create a graph %s: %v", graphName, err)
 	}
-	s.Graph = graph
-
-	log.Println(s.Graph.Name())
+	return graph
 }
 
-func initCollections() {
-	s.Users = initCollection(usersCollection)
-	s.Items = initCollection(itemsCollection)
-	s.UsersToItems = initEdgeCollection(usersItemsEdgeCollection)
+func initStore(db driver.Database, graph driver.Graph) *Store {
+	users := initCollection(graph, usersCollection)
+	items := initCollection(graph, itemsCollection)
+	usersToItems := initEdgeCollection(graph, viewedEdgeCollection)
+
+	return &Store{
+		DB:           db,
+		Graph:        graph,
+		UsersToItems: usersToItems,
+		Users:        users,
+		Items:        items,
+	}
 }
 
-func initCollection(name string) driver.Collection {
-	col, err := s.Graph.VertexCollection(nil, name)
+func initCollection(graph driver.Graph, name string) driver.Collection {
+	col, err := graph.VertexCollection(nil, name)
 	if err != nil {
 		log.Fatalf("failed to get vertex %s: %v", name, err)
 	}
 	return col
 }
 
-func initEdgeCollection(name string) edgeCollection {
-	col, constraints, err := s.Graph.EdgeCollection(nil, name)
+func initEdgeCollection(graph driver.Graph, name string) edgeCollection {
+	col, constraints, err := graph.EdgeCollection(nil, name)
 	if err != nil {
 		log.Fatalf("failed to get edge %s: %v", name, err)
 	}

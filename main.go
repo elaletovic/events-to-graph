@@ -23,7 +23,7 @@ func main() {
 
 	client := graph.GetClient(conn)
 
-	graph.Init(client)
+	store := graph.Init(client)
 
 	//configure router
 	router, err := message.NewRouter(message.RouterConfig{}, logger)
@@ -43,6 +43,41 @@ func main() {
 	eventGeneratorHandler := generators.GeneratorHandler{}
 
 	//configure handlers
+	//handlers for processors (save to SQL and graph DBs)
+	processor := processors.NewEventProcessor(store)
+
+	//handle create events
+	router.AddNoPublisherHandler(
+		"save_to_graph_create_events_handler",
+		generators.CreateTopic,
+		pubSub,
+		processor.SaveToGraph,
+	)
+
+	//handle initial events
+	router.AddNoPublisherHandler(
+		"save_to_graph_initial_events_handler",
+		generators.InitialEventsTopic,
+		pubSub,
+		processor.SaveToGraph,
+	)
+
+	//handle purchase events
+	router.AddNoPublisherHandler(
+		"save_to_graph_purchase_events_handler",
+		generators.CheckoutTopic,
+		pubSub,
+		processor.SaveToGraph,
+	)
+
+	//handle delivery events
+	router.AddNoPublisherHandler(
+		"save_to_graph_delivery_events_handler",
+		generators.DeliveryTopic,
+		pubSub,
+		processor.SaveToGraph,
+	)
+
 	router.AddHandler(
 		"initial_events_handler",
 		generators.InitialEventsTopic,
@@ -59,34 +94,6 @@ func main() {
 		generators.DeliveryTopic,
 		pubSub,
 		eventGeneratorHandler.PurchasedEventsHandler,
-	)
-
-	//handlers for processors (save to SQL and graph DBs)
-	processor := processors.EventProcessor{}
-	//sqlPubSub := gochannel.NewGoChannel(gochannel.Config{}, logger)
-
-	//handle initial events
-	router.AddNoPublisherHandler(
-		"save_to_graph_initial_events_handler",
-		generators.InitialEventsTopic,
-		pubSub,
-		processor.SaveToGraphDB,
-	)
-
-	//handle purchase events
-	router.AddNoPublisherHandler(
-		"save_to_graph_purchase_events_handler",
-		generators.CheckoutTopic,
-		pubSub,
-		processor.SaveToGraphDB,
-	)
-
-	//handle delivery events
-	router.AddNoPublisherHandler(
-		"save_to_graph_delivery_events_handler",
-		generators.DeliveryTopic,
-		pubSub,
-		processor.SaveToGraphDB,
 	)
 
 	go generators.GenerateEvents(pubSub)

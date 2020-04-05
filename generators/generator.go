@@ -6,17 +6,16 @@ import (
 	"log"
 	"time"
 
-	"github.com/ThreeDotsLabs/watermill/message/router/middleware"
 	"github.com/elaletovic/events-to-graph/models"
 
 	"github.com/ThreeDotsLabs/watermill"
 
 	"github.com/ThreeDotsLabs/watermill/message"
+	"github.com/ThreeDotsLabs/watermill/message/router/middleware"
 	"github.com/brianvoe/gofakeit"
 )
 
 var (
-	initialEvents            = []string{models.ItemViewed, models.UserAddressValidated, models.UserAddressValidationFailed}
 	itemViewedAfterEvents    = []string{models.ItemPurchased, models.ItemDropped, models.Nothing}
 	itemPurchasedAfterEvents = []string{models.ItemDelivered, models.ItemNotDelivered}
 	// CreateTopic --
@@ -32,32 +31,37 @@ var (
 // GenerateEvents --
 func GenerateEvents(publisher message.Publisher) {
 	//first generate some users and items
-	users := generateUsers(30, publisher)
-	items := generateItems(20, publisher)
+	time.Sleep(2 * time.Second)
+	users := generateUsers(20, publisher)
+	items := generateItems(15, publisher)
 
-	for {
-		eventType := gofakeit.RandString(initialEvents)
-		var eventObj interface{}
-		switch eventType {
-		case models.ItemViewed:
-			eventObj = models.ItemViewedPayload{
-				ItemID: items[gofakeit.Number(0, len(items)-1)].ID,
-				UserID: users[gofakeit.Number(0, len(users)-1)].ID,
+	time.Sleep(5 * time.Second)
+	for _, user := range users {
+		for _, item := range items {
+
+			if gofakeit.Bool() {
+				time.Sleep(100 * time.Millisecond)
+				continue
 			}
-		default:
-			continue
+
+			eventObj := models.ItemViewedPayload{
+				ItemID: item.ID,
+				UserID: user.ID,
+			}
+
+			eventPayload, err := json.Marshal(&eventObj)
+			if err != nil {
+				log.Printf("generateEvents: error while marshalling event payload, error %v\n", err)
+				continue
+			}
+
+			publish(models.ItemViewed, InitialEventsTopic, "GenerateEvents", eventPayload, publisher)
+
+			time.Sleep(100 * time.Millisecond)
 		}
-
-		eventPayload, err := json.Marshal(&eventObj)
-		if err != nil {
-			log.Printf("generateEvents: error while marshalling event payload, error %v\n", err)
-			continue
-		}
-
-		publish(eventType, InitialEventsTopic, "GenerateEvents", eventPayload, publisher)
-
-		time.Sleep(500 * time.Millisecond)
 	}
+
+	log.Println("done generating events!")
 }
 
 // GeneratorHandler --
@@ -243,6 +247,6 @@ func publish(eventType, topic, logPrefix string, eventPayload []byte, publisher 
 	}
 	msg := message.NewMessage(watermill.NewUUID(), payload)
 	middleware.SetCorrelationID(watermill.NewUUID(), msg)
-	log.Printf("%s: pushing message ID %s with payload %v\n", logPrefix, msg.UUID, string(msg.Payload))
+	//log.Printf("published: %s %s %s\n", msg.UUID, obj.Type, string(obj.Payload))
 	return publisher.Publish(topic, msg)
 }
