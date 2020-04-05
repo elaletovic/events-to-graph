@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 
+	"github.com/elaletovic/events-to-graph/graph"
 	"github.com/elaletovic/events-to-graph/processors"
 
 	"github.com/ThreeDotsLabs/watermill"
@@ -18,6 +19,12 @@ var (
 )
 
 func main() {
+	conn := graph.Connect("http://localhost:8529")
+
+	client := graph.GetClient(conn)
+
+	graph.Init(client)
+
 	//configure router
 	router, err := message.NewRouter(message.RouterConfig{}, logger)
 	if err != nil {

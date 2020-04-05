@@ -56,7 +56,7 @@ func GenerateEvents(publisher message.Publisher) {
 
 		publish(eventType, InitialEventsTopic, "GenerateEvents", eventPayload, publisher)
 
-		time.Sleep(200 * time.Millisecond)
+		time.Sleep(500 * time.Millisecond)
 	}
 }
 
