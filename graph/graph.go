@@ -8,25 +8,34 @@ import (
 )
 
 const (
-	dbName               = "example_db"
-	graphName            = "example_graph"
-	usersCollection      = "users"
-	itemsCollection      = "items"
-	viewedEdgeCollection = "viewed"
+	dbName                     = "example_db"
+	graphName                  = "example_graph"
+	usersCollection            = "users"
+	itemsCollection            = "items"
+	viewedEdgeCollection       = "viewed"
+	purchasedEdgeCollection    = "purchased"
+	droppedEdgeCollection      = "dropped"
+	deliveredEdgeCollection    = "delivered"
+	notDeliveredEdgeCollection = "not_delivered"
 )
 
 // Store --
 type Store struct {
-	DB           driver.Database
-	Graph        driver.Graph
-	Users        driver.Collection
-	Items        driver.Collection
-	UsersToItems edgeCollection
+	DB               driver.Database
+	Graph            driver.Graph
+	Users            driver.Collection
+	Items            driver.Collection
+	ViewedEdge       edgeCollection
+	PurchasedEdge    edgeCollection
+	DroppedEdge      edgeCollection
+	DeliveredEdge    edgeCollection
+	NotDeliveredEdge edgeCollection
 }
 
 type edgeCollection struct {
 	Collection  driver.Collection
 	Constraints driver.VertexConstraints
+	Label       string
 }
 
 // Connect connects to the graph server
@@ -109,13 +118,14 @@ func removeGraph(db *driver.Database) {
 }
 
 func createGraph(db driver.Database) driver.Graph {
-	var definition driver.EdgeDefinition
-	definition.Collection = viewedEdgeCollection
-	definition.From = []string{usersCollection}
-	definition.To = []string{itemsCollection}
+	edgeDefinitions := []driver.EdgeDefinition{}
+	edgeDefinitions = append(edgeDefinitions,
+		createEdgeDefinitions([]string{viewedEdgeCollection, purchasedEdgeCollection, droppedEdgeCollection}, []string{usersCollection}, []string{itemsCollection})...)
+	edgeDefinitions = append(edgeDefinitions,
+		createEdgeDefinitions([]string{deliveredEdgeCollection, notDeliveredEdgeCollection}, []string{itemsCollection}, []string{usersCollection})...)
 
 	var options driver.CreateGraphOptions
-	options.EdgeDefinitions = []driver.EdgeDefinition{definition}
+	options.EdgeDefinitions = edgeDefinitions
 	graph, err := db.CreateGraph(nil, graphName, &options)
 	if err != nil {
 		log.Fatalf("failed to create a graph %s: %v", graphName, err)
@@ -124,16 +134,16 @@ func createGraph(db driver.Database) driver.Graph {
 }
 
 func initStore(db driver.Database, graph driver.Graph) *Store {
-	users := initCollection(graph, usersCollection)
-	items := initCollection(graph, itemsCollection)
-	usersToItems := initEdgeCollection(graph, viewedEdgeCollection)
-
 	return &Store{
-		DB:           db,
-		Graph:        graph,
-		UsersToItems: usersToItems,
-		Users:        users,
-		Items:        items,
+		DB:               db,
+		Graph:            graph,
+		ViewedEdge:       initEdgeCollection(graph, viewedEdgeCollection),
+		PurchasedEdge:    initEdgeCollection(graph, purchasedEdgeCollection),
+		DroppedEdge:      initEdgeCollection(graph, droppedEdgeCollection),
+		DeliveredEdge:    initEdgeCollection(graph, deliveredEdgeCollection),
+		NotDeliveredEdge: initEdgeCollection(graph, notDeliveredEdgeCollection),
+		Users:            initCollection(graph, usersCollection),
+		Items:            initCollection(graph, itemsCollection),
 	}
 }
 
@@ -154,5 +164,19 @@ func initEdgeCollection(graph driver.Graph, name string) edgeCollection {
 	return edgeCollection{
 		Collection:  col,
 		Constraints: constraints,
+		Label:       name,
 	}
+}
+
+func createEdgeDefinitions(edgeCollections []string, fromVertices []string, toVertices []string) []driver.EdgeDefinition {
+	edgeDefinitions := []driver.EdgeDefinition{}
+	for _, edge := range edgeCollections {
+		var definition driver.EdgeDefinition
+		definition.Collection = edge
+		definition.From = fromVertices
+		definition.To = toVertices
+		edgeDefinitions = append(edgeDefinitions, definition)
+	}
+
+	return edgeDefinitions
 }

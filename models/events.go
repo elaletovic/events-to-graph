@@ -28,6 +28,7 @@ type Event struct {
 	CreatedAt int64  `json:"created_at"`
 	Type      string `json:"type"`
 	Payload   []byte `json:"payload"`
+	Origin    string `json:"origin"`
 }
 
 // ItemViewedPayload --
@@ -38,16 +39,14 @@ type ItemViewedPayload struct {
 
 // ItemPurchasedPayload --
 type ItemPurchasedPayload struct {
-	ItemID   uint64 `json:"item_id"`
-	UserID   uint64 `json:"user_id"`
-	Quantity int    `json:"quantity"`
+	ItemID uint64 `json:"item_id"`
+	UserID uint64 `json:"user_id"`
 }
 
 // ItemDroppedPayload --
 type ItemDroppedPayload struct {
-	ItemID   uint64 `json:"item_id"`
-	UserID   uint64 `json:"user_id"`
-	Quantity int    `json:"quantity"`
+	ItemID uint64 `json:"item_id"`
+	UserID uint64 `json:"user_id"`
 }
 
 // ItemDeliveredPayload --

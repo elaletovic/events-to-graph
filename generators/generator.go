@@ -30,8 +30,8 @@ var (
 
 // GenerateEvents --
 func GenerateEvents(publisher message.Publisher) {
-	//first generate some users and items
 	time.Sleep(2 * time.Second)
+	//first generate some users and items
 	users := generateUsers(20, publisher)
 	items := generateItems(15, publisher)
 
@@ -79,6 +79,7 @@ func (gh GeneratorHandler) InitialEventsHandler(msg *message.Message) ([]*messag
 	newEvent := models.Event{
 		CreatedAt: time.Now().Unix(),
 		Type:      gofakeit.RandString(itemViewedAfterEvents),
+		Origin:    msg.UUID,
 	}
 	switch event.Type {
 	case models.ItemViewed:
@@ -93,15 +94,13 @@ func (gh GeneratorHandler) InitialEventsHandler(msg *message.Message) ([]*messag
 		switch newEvent.Type {
 		case models.ItemPurchased:
 			newEventObj = models.ItemPurchasedPayload{
-				ItemID:   eventPayload.ItemID,
-				UserID:   eventPayload.UserID,
-				Quantity: gofakeit.Number(1, 5),
+				ItemID: eventPayload.ItemID,
+				UserID: eventPayload.UserID,
 			}
 		case models.ItemDropped:
 			newEventObj = models.ItemDroppedPayload{
-				ItemID:   eventPayload.ItemID,
-				UserID:   eventPayload.UserID,
-				Quantity: gofakeit.Number(1, 5),
+				ItemID: eventPayload.ItemID,
+				UserID: eventPayload.UserID,
 			}
 		case models.Nothing:
 			log.Println("returning Nothing")
@@ -136,7 +135,8 @@ func (gh GeneratorHandler) PurchasedEventsHandler(msg *message.Message) ([]*mess
 	}
 	newEvent := models.Event{
 		CreatedAt: time.Now().Unix(),
-		Type:      gofakeit.RandString(itemViewedAfterEvents),
+		Type:      gofakeit.RandString(itemPurchasedAfterEvents),
+		Origin:    msg.UUID,
 	}
 	switch event.Type {
 	case models.ItemPurchased:
@@ -247,6 +247,5 @@ func publish(eventType, topic, logPrefix string, eventPayload []byte, publisher 
 	}
 	msg := message.NewMessage(watermill.NewUUID(), payload)
 	middleware.SetCorrelationID(watermill.NewUUID(), msg)
-	//log.Printf("published: %s %s %s\n", msg.UUID, obj.Type, string(obj.Payload))
 	return publisher.Publish(topic, msg)
 }
