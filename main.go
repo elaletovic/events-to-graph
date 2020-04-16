@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 
+	"github.com/elaletovic/events-to-graph/config"
 	"github.com/elaletovic/events-to-graph/graph"
 	"github.com/elaletovic/events-to-graph/processors"
 
@@ -19,7 +20,10 @@ var (
 )
 
 func main() {
-	conn := graph.Connect("http://localhost:8529")
+	//load config
+	cfg := config.Load()
+
+	conn := graph.Connect(cfg.DBAddress)
 
 	client := graph.GetClient(conn)
 
