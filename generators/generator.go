@@ -32,15 +32,15 @@ var (
 func GenerateEvents(publisher message.Publisher) {
 	time.Sleep(2 * time.Second)
 	//first generate some users and items
-	users := generateUsers(20, publisher)
+	users := generateUsers(30, publisher)
 	items := generateItems(15, publisher)
 
-	time.Sleep(5 * time.Second)
-	for _, user := range users {
-		for _, item := range items {
+	time.Sleep(2 * time.Second)
+	for _, item := range items {
+		for _, user := range users {
 
 			if gofakeit.Bool() {
-				time.Sleep(100 * time.Millisecond)
+				time.Sleep(10 * time.Millisecond)
 				continue
 			}
 
@@ -57,7 +57,7 @@ func GenerateEvents(publisher message.Publisher) {
 
 			publish(models.ItemViewed, InitialEventsTopic, "GenerateEvents", eventPayload, publisher)
 
-			time.Sleep(100 * time.Millisecond)
+			time.Sleep(20 * time.Millisecond)
 		}
 	}
 
@@ -160,7 +160,7 @@ func (gh GeneratorHandler) PurchasedEventsHandler(msg *message.Message) ([]*mess
 				ItemID:  eventPayload.ItemID,
 				UserID:  eventPayload.UserID,
 				Address: fmt.Sprintf("%s, %s, %s", gofakeit.Street(), gofakeit.City(), gofakeit.Country()),
-				Reason:  gofakeit.RandString([]string{"fake", "not occupied by user"}),
+				Reason:  gofakeit.RandString([]string{"fake address", "not occupied by the designated buyer"}),
 			}
 		}
 
@@ -217,6 +217,7 @@ func generateItems(numberOfItems int, publisher message.Publisher) []models.Item
 			Title:        fmt.Sprintf("%s %s %d", vehicle.Brand, vehicle.Model, vehicle.Year),
 			Manufacturer: vehicle.Brand,
 			Origin:       gofakeit.Country(),
+			Price:        gofakeit.Price(10000, 60000),
 		}
 
 		itemCreatedPayload, err := json.Marshal(&item)

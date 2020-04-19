@@ -16,13 +16,13 @@ type purchased link
 type dropped link
 
 type delivered struct {
-	Address string
+	Address string `json:"address"`
 	link
 }
 
 type notDelivered struct {
-	Address string
-	Reason  string
+	Address string `json:"address"`
+	Reason  string `json:"reason"`
 	link
 }
 
