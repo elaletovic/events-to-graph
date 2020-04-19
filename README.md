@@ -3,17 +3,17 @@
 An example service used for converting events to useful graph data.
 
 ## Description
-The service uses [watermill][1] and [arangoDB][2] for showcasing how to convert events, coming from an event stream, to useful graph data, that can be searched and queried easily. It performs two main tasks:
+The service uses [watermill][1] and [arangoDB][2] for showcasing how to convert events, coming from an event stream, to useful graph data that can be easily searched and queried. It performs two main tasks:
 * tries to mimick an event stream by generating series of events 
 * converts events to graph data; to vertices and edges
 
 ### Generating series of events
 
-This part of the service tries to mimick an event stream by generating events. The domain context of this service is a simple marketplace where users can view and purchase items. Two types of events are generated. Creational events like `user_registered` and `item_created`, and relational events like `item_viewed`, `item_dropped`, `item_purchased`, `item_delivered` and `item_not_delivered`.
+This part of the service tries to mimick an event stream by generating events. The domain context of this service is a simple marketplace where users can view and purchase items. Two types of events are generated: creational events like `user_registered` and `item_created`, and relational events like `item_viewed`, `item_dropped`, `item_purchased`, `item_delivered` and `item_not_delivered`.
 
 ### Event to graph data conversion
 
-This part of the service receives events and converts the event payload to graph data. Creational events are converted to matching vertices, while relations events are converted to matching edges between vertices.
+This part of the service receives events and converts the event payload to graph data. Creational events are converted to matching vertices, while relational events are converted to matching edges between vertices.
 
 ## Running the service
 
@@ -59,7 +59,7 @@ FOR user IN users
         reason: delivery.reason
     }
 ```
-If you want to see that displayed as a graph, try out this one below (to display results as a graph, returning data has to have `_from` and `_to` fields)
+If you want to see the former displayed as a graph, try out this one below (to display results as a graph, returning data has to have `_from` and `_to` fields)
 
 ```
 FOR v in not_delivered
