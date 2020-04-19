@@ -17,7 +17,7 @@ This part of the service receives events and converts the event payload to graph
 
 ## Running the service
 
-The easiest way to run the service is to run `docker-compose up`. After ArangoDB and the service are set up, the service will start generating events and saving them to the graph database. The service will log some info for each step of the process, finishing with `done generating events!`.
+The easiest way to run both the service and the ArangoDB graph database isntance is to run `docker-compose up`. After ArangoDB instance and the service are set up, the service will start generating events and saving them to the graph database. The service will log some info for each step of the process, finishing with `done generating events!`.
 
 If you run the service and the graph database separately, bear in mind that service deletes the database and its data every time the service is started.
 
