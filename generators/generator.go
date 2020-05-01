@@ -26,6 +26,8 @@ var (
 	CheckoutTopic = "checkout_topic"
 	// DeliveryTopic --
 	DeliveryTopic = "delivery_topic"
+	//Topics all generator topics
+	Topics = []string{CreateTopic, InitialEventsTopic, CheckoutTopic, DeliveryTopic}
 )
 
 // GenerateEvents --

@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/elaletovic/events-to-graph/config"
 	"github.com/elaletovic/events-to-graph/graph"
@@ -50,37 +51,15 @@ func main() {
 	//handlers for processors (save to SQL and graph DBs)
 	processor := processors.NewEventProcessor(store)
 
-	//handle create events
-	router.AddNoPublisherHandler(
-		"save_to_graph_create_events_handler",
-		generators.CreateTopic,
-		pubSub,
-		processor.SaveToGraph,
-	)
-
-	//handle initial events
-	router.AddNoPublisherHandler(
-		"save_to_graph_initial_events_handler",
-		generators.InitialEventsTopic,
-		pubSub,
-		processor.SaveToGraph,
-	)
-
-	//handle purchase events
-	router.AddNoPublisherHandler(
-		"save_to_graph_purchase_events_handler",
-		generators.CheckoutTopic,
-		pubSub,
-		processor.SaveToGraph,
-	)
-
-	//handle delivery events
-	router.AddNoPublisherHandler(
-		"save_to_graph_delivery_events_handler",
-		generators.DeliveryTopic,
-		pubSub,
-		processor.SaveToGraph,
-	)
+	//save events to graph
+	for _, topic := range generators.Topics {
+		router.AddNoPublisherHandler(
+			fmt.Sprintf("save_to_graph_%s_handler", topic),
+			topic,
+			pubSub,
+			processor.SaveToGraph,
+		)
+	}
 
 	router.AddHandler(
 		"initial_events_handler",
